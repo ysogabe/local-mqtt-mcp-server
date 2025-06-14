@@ -1,5 +1,7 @@
 # MQTT MCP Server
 
+English | [日本語](README.ja.md)
+
 A powerful Model Context Protocol (MCP) server that enables Claude Desktop and other MCP clients to interact with MQTT brokers seamlessly. This server provides comprehensive MQTT publish/subscribe functionality through standardized MCP tools, resources, and events.
 
 ## 🌟 Features
@@ -91,10 +93,10 @@ Add to your Claude Desktop configuration:
 
 ## 📚 Documentation
 
-- **[API Specification](docs/05_API仕様書.md)** - Complete API reference
-- **[System Design](docs/04_システム設計書.md)** - Architecture and components
-- **[Use Cases](docs/03_ユースケース設計書.md)** - Practical usage scenarios
-- **[Technical Requirements](docs/02_技術要件仕様書.md)** - Detailed specifications
+- **[API Specification](docs/05_api_specification.md)** - Complete API reference
+- **[System Design](docs/04_system_design.md)** - Architecture and components
+- **[Use Cases](docs/03_use_cases.md)** - Practical usage scenarios
+- **[Technical Requirements](docs/02_technical_requirements.md)** - Detailed specifications
 
 ## 🎯 Use Cases
 

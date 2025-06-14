@@ -274,9 +274,9 @@ mosquitto_sub -h localhost -t "\$SYS/#" | head -20
 
 ## 📚 Related Documentation
 
-- [API Specification](../../docs/05_API仕様書.md) - Complete MQTT MCP API reference
-- [Use Cases](../../docs/03_ユースケース設計書.md) - Detailed integration scenarios
-- [System Design](../../docs/04_システム設計書.md) - Architecture overview
+- [API Specification](../../docs/05_api_specification.md) - Complete MQTT MCP API reference
+- [Use Cases](../../docs/03_use_cases.md) - Detailed integration scenarios
+- [System Design](../../docs/04_system_design.md) - Architecture overview
 
 ## 🤝 Support
 
