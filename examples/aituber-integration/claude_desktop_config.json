@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "mqtt-aituber": {
+      "command": "node",
+      "args": ["path/to/mqtt-mcp-server/src/server.js"],
+      "env": {
+        "MQTT_BROKER_URL": "mqtt://localhost:1883",
+        "MQTT_CLIENT_ID": "aituber-mcp-client",
+        "MQTT_USERNAME": "",
+        "MQTT_PASSWORD": "",
+        "LOG_LEVEL": "info",
+        "CONFIG_FILE": "path/to/aituber-config.yaml"
+      }
+    }
+  }
+}
