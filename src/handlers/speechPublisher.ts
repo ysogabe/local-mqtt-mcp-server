@@ -1,6 +1,7 @@
 import winston from 'winston';
 import { MqttManager } from '../mqttManager';
 import { SpeechPayload, generateMessageId } from '../types';
+import { ConfigManager } from '../config/ConfigManager';
 
 // Configure logger for speech publisher (disable all logging for MCP)
 const logger = winston.createLogger({
@@ -210,17 +211,18 @@ export class SpeechPublisher {
    * Get MQTT topic based on type and priority
    */
   private getTopicForPriority(priority: string): string {
-    const baseTopic = 'aituber/speech';
+    const configManager = ConfigManager.getInstance();
+    const topics = configManager.getAituberTopics();
 
     switch (priority) {
       case 'low':
       case 'medium':
-        return baseTopic;
+        return topics.speech;
       case 'high':
-        return `${baseTopic}/alert`;
+        return topics.alert;
       default:
         logger.warn('Unknown priority, using normal topic', { priority });
-        return baseTopic;
+        return topics.speech;
     }
   }
 }
