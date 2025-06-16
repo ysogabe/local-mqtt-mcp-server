@@ -2,6 +2,7 @@ import winston from 'winston';
 import { MqttManager } from '../mqttManager';
 import { ToolResult, MessageCallback, SpeechPayload } from '../types';
 import { SpeechPublisher } from './speechPublisher';
+import { ConfigManager } from '../config/ConfigManager';
 
 // Configure logger for handlers (disable all logging for MCP)
 const logger = winston.createLogger({
@@ -296,12 +297,17 @@ export async function handleSpeechPublish(params: any): Promise<ToolResult> {
         // If no connections are available, auto-establish a default one
         connectionId = 'aituber-default';
         logger.info(`No active connections. Auto-establishing default connection: ${connectionId}`);
+        
+        // Get configuration from ConfigManager
+        const configManager = ConfigManager.getInstance();
+        const brokerConfig = configManager.getDefaultBrokerConfig();
+        
         try {
           await mqttManager.connect(connectionId, {
-            brokerUrl: 'mqtt://192.168.0.131:1883',
-            clientId: `aituber-mcp-${Date.now()}`,
-            clean: true,
-            keepalive: 60
+            brokerUrl: brokerConfig.url,
+            clientId: `${brokerConfig.clientIdPrefix}-${Date.now()}`,
+            clean: brokerConfig.options?.clean ?? true,
+            keepalive: brokerConfig.options?.keepalive ?? 60
           });
         } catch (connectError) {
           const errorMessage = connectError instanceof Error ? connectError.message : 'Unknown connection error';

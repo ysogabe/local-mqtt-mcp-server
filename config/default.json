@@ -1,0 +1,20 @@
+{
+  "mqtt": {
+    "defaultBroker": {
+      "url": "mqtt://192.168.0.131:1883",
+      "clientIdPrefix": "aituber-mcp",
+      "options": {
+        "clean": true,
+        "keepalive": 60,
+        "reconnectPeriod": 5000
+      }
+    }
+  },
+  "aituber": {
+    "topics": {
+      "speech": "aituber/speech",
+      "alert": "aituber/speech/alert",
+      "notification": "aituber/speech/notification"
+    }
+  }
+}
