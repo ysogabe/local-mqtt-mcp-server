@@ -1,0 +1,240 @@
+name: Local MQTT MCP Server MVP Implementation
+description: TDD-based implementation plan for MQTT MCP Server
+
+prerequisites:
+  - Node.js 18.0+
+  - npm
+  - Feature branch: feature/mqtt-mvp
+
+dependencies:
+  - "@modelcontextprotocol/sdk": "^1.0.0"
+  - "mqtt": "^5.0.0"
+  - "winston": "^3.11.0"
+  - "@types/node": "^20.0.0"
+  - "typescript": "^5.0.0"
+  - "tsx": "^4.0.0"
+  - "jest": "^29.0.0"
+  - "@types/jest": "^29.0.0"
+
+implementation_phases:
+  phase_1_setup:
+    tasks:
+      - name: Initialize TypeScript project
+        commands:
+          - npm init -y
+          - npm install --save-dev typescript @types/node tsx jest @types/jest ts-jest
+          - npm install @modelcontextprotocol/sdk mqtt winston
+          
+      - name: Configure TypeScript
+        file: tsconfig.json
+        content:
+          compilerOptions:
+            target: "ES2022"
+            module: "commonjs"
+            lib: ["ES2022"]
+            outDir: "./dist"
+            rootDir: "./src"
+            strict: true
+            esModuleInterop: true
+            skipLibCheck: true
+            forceConsistentCasingInFileNames: true
+            resolveJsonModule: true
+            
+      - name: Configure Jest
+        file: jest.config.js
+        content:
+          preset: "ts-jest"
+          testEnvironment: "node"
+          testMatch: ["**/__tests__/**/*.test.ts"]
+          
+      - name: Create directory structure
+        directories:
+          - src/
+          - src/types/
+          - src/handlers/
+          - src/storage/
+          - src/__tests__/
+          - data/
+
+  phase_2_core_types:
+    tasks:
+      - name: Define MCP and MQTT types
+        file: src/types/index.ts
+        tests_first:
+          - file: src/__tests__/types.test.ts
+            test_cases:
+              - "should validate MqttConnection interface"
+              - "should validate MqttMessage interface"
+              - "should validate SubscriptionInfo interface"
+              - "should validate tool request/response types"
+        implementation:
+          exports:
+            - interface MqttConnection
+            - interface MqttMessage
+            - interface SubscriptionInfo
+            - interface PublishRequest
+            - interface SubscribeRequest
+            - type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error'
+
+  phase_3_mqtt_manager:
+    tasks:
+      - name: Create MQTT connection manager
+        file: src/mqttManager.ts
+        tests_first:
+          - file: src/__tests__/mqttManager.test.ts
+            test_cases:
+              - "should create new MQTT connection"
+              - "should handle multiple connections"
+              - "should reconnect on connection loss"
+              - "should publish messages"
+              - "should subscribe to topics"
+              - "should store message history"
+              - "should limit message buffer to 1000"
+              - "should handle connection errors"
+              - "should clean up on disconnect"
+        implementation:
+          class: MqttManager
+          singleton: true
+          methods:
+            - connect(id: string, options: ConnectionOptions): Promise<void>
+            - disconnect(id: string): Promise<void>
+            - publish(connectionId: string, topic: string, message: string | Buffer): Promise<void>
+            - subscribe(connectionId: string, topic: string, callback: MessageCallback): Promise<void>
+            - unsubscribe(connectionId: string, topic: string): Promise<void>
+            - getConnections(): MqttConnection[]
+            - getMessages(connectionId: string, topic?: string): MqttMessage[]
+
+  phase_4_mcp_handlers:
+    tasks:
+      - name: Create MCP tool handlers
+        file: src/handlers/toolHandlers.ts
+        tests_first:
+          - file: src/__tests__/toolHandlers.test.ts
+            test_cases:
+              - "should handle mqtt_connect tool"
+              - "should handle mqtt_disconnect tool"
+              - "should handle mqtt_publish tool"
+              - "should handle mqtt_subscribe tool"
+              - "should handle mqtt_unsubscribe tool"
+              - "should validate required parameters"
+              - "should return appropriate error messages"
+        implementation:
+          exports:
+            - handleConnect(params: any): Promise<ToolResult>
+            - handleDisconnect(params: any): Promise<ToolResult>
+            - handlePublish(params: any): Promise<ToolResult>
+            - handleSubscribe(params: any): Promise<ToolResult>
+            - handleUnsubscribe(params: any): Promise<ToolResult>
+
+  phase_5_storage:
+    tasks:
+      - name: Create persistent storage
+        file: src/storage/fileStorage.ts
+        tests_first:
+          - file: src/__tests__/fileStorage.test.ts
+            test_cases:
+              - "should save messages to JSON file"
+              - "should load messages from file"
+              - "should handle file not found"
+              - "should rotate files when size exceeds limit"
+              - "should save subscription info"
+              - "should restore subscriptions on startup"
+        implementation:
+          class: FileStorage
+          methods:
+            - saveMessages(connectionId: string, messages: MqttMessage[]): Promise<void>
+            - loadMessages(connectionId: string): Promise<MqttMessage[]>
+            - saveSubscriptions(subscriptions: SubscriptionInfo[]): Promise<void>
+            - loadSubscriptions(): Promise<SubscriptionInfo[]>
+            - clearOldMessages(daysToKeep: number): Promise<void>
+
+  phase_6_mcp_server:
+    tasks:
+      - name: Create main MCP server
+        file: src/index.ts
+        tests_first:
+          - file: src/__tests__/server.test.ts
+            test_cases:
+              - "should start MCP server"
+              - "should register all tools"
+              - "should handle tool calls"
+              - "should provide resources"
+              - "should handle errors gracefully"
+              - "should shutdown cleanly"
+        implementation:
+          main_function: startServer
+          features:
+            - Initialize MCP SDK server
+            - Register MQTT tools
+            - Set up resource providers
+            - Handle incoming requests
+            - Restore saved state on startup
+            - Clean shutdown handling
+
+  phase_7_resources:
+    tasks:
+      - name: Create MCP resource providers
+        file: src/handlers/resourceHandlers.ts
+        tests_first:
+          - file: src/__tests__/resourceHandlers.test.ts
+            test_cases:
+              - "should list active connections"
+              - "should list subscriptions"
+              - "should provide message history"
+              - "should filter messages by topic"
+              - "should return connection status"
+        implementation:
+          exports:
+            - getConnectionsResource(): Resource
+            - getSubscriptionsResource(connectionId: string): Resource
+            - getMessagesResource(connectionId: string, topic?: string): Resource
+
+  phase_8_speech_integration:
+    tasks:
+      - name: Create AITuber speech publisher
+        file: src/handlers/speechPublisher.ts
+        tests_first:
+          - file: src/__tests__/speechPublisher.test.ts
+            test_cases:
+              - "should publish speech payload to correct topic"
+              - "should validate speech payload format"
+              - "should handle priority routing"
+              - "should generate unique message IDs"
+              - "should add timestamp if missing"
+        implementation:
+          class: SpeechPublisher
+          methods:
+            - publishSpeech(connectionId: string, payload: SpeechPayload): Promise<void>
+            - publishAlert(connectionId: string, text: string, priority: string): Promise<void>
+            - publishNotification(connectionId: string, text: string, category: string): Promise<void>
+
+      - name: Add speech-specific MCP tool
+        file: src/handlers/toolHandlers.ts
+        modification:
+          - Add handleSpeechPublish tool
+          - Validate AITuber speech payload format
+          - Route to appropriate topic based on type
+
+package_scripts:
+  - name: Update package.json scripts
+    scripts:
+      start: "tsx src/index.ts"
+      dev: "tsx watch src/index.ts"
+      build: "tsc"
+      test: "jest"
+      test:watch: "jest --watch"
+      lint: "eslint src --ext .ts"
+      typecheck: "tsc --noEmit"
+
+test_commands:
+  - npm test
+  - npm run typecheck
+  - npm run lint
+
+validation:
+  - Start MCP server
+  - Connect to MQTT broker
+  - Publish test speech message
+  - Verify message appears in AITuberKit
+  - Test subscription to topics
+  - Check message persistence

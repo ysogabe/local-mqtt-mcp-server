@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+### Code Development Guidelines
+- **絶対にフルパスのハードコーディングをしない**
+  - NG: `/Users/username/project/...`
+  - OK: `Path.cwd()`, `Path(__file__).parent`, 相対パス
+- **ハードコーディングは基本的に避ける**
+  - 設定値は設定ファイルや環境変数から取得
+  - マジックナンバーは定数として定義
+  - 固定値の代わりに動的な計算や設定を使用
+
 ## Project Overview
 
 This is an MQTT MCP (Model Context Protocol) server that enables Claude Desktop/Claude Code to interact with MQTT brokers. The server provides tools for publishing, subscribing, and managing MQTT messages through the MCP protocol.
@@ -25,102 +34,140 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
-# Check code coverage
-npm run test:coverage
-
 # Lint the code
 npm run lint
 
-# Build (runs tests and lint)
+# Type checking
+npm run typecheck
+
+# Build TypeScript
 npm run build
-```
-
-### Setup Commands
-```bash
-# Run initial setup
-npm run setup
-
-# Check server health
-npm run health
 ```
 
 ## Architecture
 
 ### Current Structure
-The main implementation is currently in `00_ideas/mqtt_mcp_server.js` (810 lines). The project needs restructuring to match the documented architecture:
+The project is implemented in TypeScript with the following structure:
 
 ```
 src/
-├── server.js          # Main MCP server entry point
-├── mqtt/
-│   ├── client.js      # MQTT client wrapper
-│   └── handlers.js    # Message handlers
+├── index.ts              # Main MCP server entry point
+├── mqttManager.ts        # MQTT client management
+├── handlers/
+│   ├── toolHandlers.ts   # MCP tool handlers
+│   ├── resourceHandlers.ts # Resource management
+│   └── speechPublisher.ts  # AITuber speech integration
 ├── storage/
-│   ├── history.js     # Message history management
-│   └── subscriptions.js # Subscription persistence
-├── tools/
-│   └── index.js       # MCP tool definitions
-└── utils/
-    ├── config.js      # Configuration management
-    └── logger.js      # Logging utilities
+│   └── fileStorage.ts    # Persistent storage implementation
+├── types/
+│   └── index.ts          # TypeScript type definitions
+└── __tests__/            # Test files for all modules
 ```
 
 ### Key Components
 - **MCP Server**: Uses `@modelcontextprotocol/sdk` with stdio transport
-- **MQTT Client**: Built on `mqtt` library with reconnection support
-- **Persistence**: JSON files for history (`mqtt-history.json`) and subscriptions (`mqtt-subscriptions.json`)
-- **Message Buffer**: In-memory storage limited to 1000 messages
+- **MQTT Manager**: Built on `mqtt` library with connection management
+- **Tool Handlers**: Implements all MQTT operations as MCP tools
+- **File Storage**: JSON-based persistence for messages and subscriptions
+- **Speech Publisher**: Special handler for AITuber voice synthesis integration
 
 ### Available MCP Tools
-1. `mqtt_connect` - Connect to broker with authentication
-2. `mqtt_publish` - Publish with QoS and retain options
-3. `mqtt_subscribe` - Subscribe to topics (supports wildcards)
-4. `mqtt_unsubscribe` - Unsubscribe from topics
-5. `mqtt_get_messages` - Retrieve message history
-6. `mqtt_status` - Get connection status
-7. `mqtt_add_subscriptions` - Add new subscriptions dynamically
-8. `mqtt_remove_subscriptions` - Remove specific subscriptions
-9. `mqtt_list_subscriptions` - List all active subscriptions
-10. `mqtt_get_retained` - Get retained messages from topics
+1. `mqtt_connect` - Connect to MQTT broker with optional authentication
+2. `mqtt_disconnect` - Disconnect from MQTT broker
+3. `mqtt_publish` - Publish messages with QoS and retain options
+4. `mqtt_subscribe` - Subscribe to topics (supports wildcards + and #)
+5. `mqtt_unsubscribe` - Unsubscribe from topics
+6. `aituber_speech_publish` - Publish speech messages to AITuber for TTS
 
 ## Important Implementation Notes
 
-### Message Handling
-- Messages are stored with timestamps and full metadata
-- History is persisted to disk on every new message
-- Maximum 1000 messages in history (FIFO)
+### Message Storage
+- Messages stored in `data/mqtt-messages.json` with full metadata
+- Subscriptions persisted in `data/mqtt-subscriptions.json`
+- Automatic directory creation on first run
+- Circular buffer implementation for message history
 
-### Subscription Management
-- Subscriptions persist across reconnections
-- Wildcard topics supported (+, #)
-- All subscriptions restored on reconnect
+### Connection Management
+- Each connection identified by unique `connectionId`
+- Multiple concurrent broker connections supported
+- Automatic reconnection with configurable retry
+- Clean session flag support for persistent sessions
+
+### AITuber Integration
+The `aituber_speech_publish` tool provides special integration:
+- Default connection ID: `aituber-default`
+- Topic: `aituber/speech/request`
+- Priority levels: low, medium, high, normal, urgent
+- Support for emotion, voice, pitch, and speed parameters
 
 ### Error Handling
-- Connection errors are logged but don't crash the server
-- Reconnection is automatic with exponential backoff
-- Tool errors return descriptive error messages
-
-### Integration Points
-- Designed for AITuberKit integration (voice synthesis)
-- Supports IoT device control via MQTT
-- Can bridge chat systems through MQTT topics
+- All errors return structured MCP error responses
+- Connection failures don't crash the server
+- File I/O errors handled gracefully
+- Type validation on all tool parameters
 
 ## Development Guidelines
 
-### When Adding New Features
-1. Follow the modular structure in design documents
-2. Add corresponding tests in the test suite
-3. Update API documentation in `02_docs/05_api_design.md`
-4. Ensure compatibility with existing MCP tools
+### TypeScript Best Practices
+- Strict mode enabled - no implicit any
+- All exports must have explicit types
+- Use interfaces for data structures
+- Proper error typing with custom error classes
 
-### Testing MQTT Functionality
-- Use local Mosquitto broker for development
-- Test with QoS levels 0, 1, and 2
-- Verify retained message handling
-- Test wildcard subscriptions
+### Testing Requirements
+- Unit tests for all handlers and utilities
+- Mock MQTT client for isolated testing
+- Coverage target: 80%+ for critical paths
+- Integration tests for MCP protocol
 
-### Configuration
-The server expects Claude Desktop configuration at:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- Linux: `~/.config/Claude/claude_desktop_config.json`
+### Adding New Features
+1. Define types in `src/types/index.ts`
+2. Implement handler in appropriate module
+3. Add unit tests with mocks
+4. Update this documentation
+5. Test with real MQTT broker
+
+### Local Development Setup
+```bash
+# Install mosquitto for local testing
+brew install mosquitto  # macOS
+sudo apt-get install mosquitto  # Ubuntu
+
+# Start mosquitto
+mosquitto -v
+
+# Configure Claude Desktop
+# Add to ~/Library/Application Support/Claude/claude_desktop_config.json:
+{
+  "mcpServers": {
+    "mqtt": {
+      "command": "npm",
+      "args": ["start"],
+      "cwd": "/path/to/local_mqtt_mcp_server"
+    }
+  }
+}
+```
+
+## Common Tasks
+
+### Testing MQTT Communication
+```bash
+# Subscribe to test topic
+mosquitto_sub -t "test/topic" -v
+
+# Publish test message
+mosquitto_pub -t "test/topic" -m "Hello MQTT"
+```
+
+### Testing AITuber Integration
+1. Start AITuberKit on http://localhost:3000
+2. Configure MQTT settings in AITuber
+3. Use `aituber_speech_publish` to send TTS commands
+4. Verify speech playback in browser
+
+### Debugging MCP Protocol
+- Check Claude Desktop logs for connection issues
+- Use `--verbose` flag for detailed logging
+- Monitor `data/*.json` files for persistence
+- Test tools individually before integration
